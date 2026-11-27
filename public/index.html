@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Offix</title>
+<link rel="icon" href="/logo.svg"><link rel="manifest" href="/manifest.webmanifest"><meta name="theme-color" content="#111114">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@500;600;700&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="/estilos.css">
+</head>
+<body>
+<section id="bienvenida" class="bienvenida">
+  <div class="marca"><img src="/logo.svg" alt="" width="40" height="40"><span>Offix</span></div>
+  <h1>Cada cliente, de la primera charla<br><em>al próximo pedido.</em></h1>
+  <p class="bajada">La demo de Visuali conectada a HubSpot: cuando cargás un cliente se crea su contacto, cada pedido es un negocio con su etapa y el onboarding te avisa quién se está enfriando.</p>
+  <ol class="pasos-intro">
+    <li><b>01</b><span>Cargás el cliente</span><small>Se crea el contacto en HubSpot</small></li>
+    <li><b>02</b><span>Seguís sus 4 pasos</span><small>Relevamiento, propuesta, entrega y seguimiento</small></li>
+    <li><b>03</b><span>Movés el pedido</span><small>El negocio cambia de etapa en el embudo</small></li>
+    <li><b>04</b><span>Mirás el panel</span><small>Quién lleva días sin novedades</small></li>
+  </ol>
+  <button class="btn" id="entrar">Entrar a la demo</button>
+  <p class="nota">Datos ficticios · ningún cliente real</p>
+</section>
+
+<div id="app" hidden>
+  <header class="barra">
+    <div class="marca"><img src="/logo.svg" alt="" width="28" height="28"><span>Offix</span></div>
+    <nav class="tabs">
+      <button data-vista="panel" class="activa">Panel</button>
+      <button data-vista="clientes">Onboarding</button>
+      <button data-vista="pedidos">Pedidos</button>
+      <button data-vista="hubspot">HubSpot</button>
+    </nav>
+    <span id="estado-hs" class="pildora"></span>
+  </header>
+  <main id="vista"></main>
+</div>
+<dialog id="nuevo">
+  <form method="dialog" id="form-nuevo">
+    <h3>Cliente nuevo</h3>
+    <label>Nombre y apellido<input name="nombre" required></label>
+    <label>Empresa<input name="empresa" required></label>
+    <label>Email<input name="email" type="email" required></label>
+    <label>Teléfono<input name="telefono"></label>
+    <div class="acciones"><button value="cancelar" class="btn sec" formnovalidate>Cancelar</button><button value="ok" class="btn">Crear y enviar a HubSpot</button></div>
+  </form>
+</dialog>
+<script type="module" src="/app.js"></script>
+</body>
+</html>

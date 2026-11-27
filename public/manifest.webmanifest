@@ -1,0 +1,2 @@
+{ "name": "Offix", "short_name": "Onboard", "start_url": "/", "display": "standalone",
+  "background_color": "#111114", "theme_color": "#111114", "icons": [{ "src": "/logo.svg", "sizes": "any", "type": "image/svg+xml" }] }
