@@ -1,10 +1,30 @@
 // Offix — interfaz de la demo
-const $ = (s) => document.querySelector(s);
-const pesos = (n) => "$ " + n.toLocaleString("es-AR");
-const fecha = (f) => (f ? new Date(f + "T12:00:00").toLocaleDateString("es-AR", { day: "numeric", month: "short" }) : "");
-let datos, vista = "panel", limite = 14;
 
-async function api(ruta, opciones = {}) {
+// Lo que devuelve /api/estado (ver server.ts)
+interface Paso { id: string; nombre: string; detalle: string }
+interface ClienteVista {
+  id: string; nombre: string; empresa: string; email: string; hubspotId: string | null;
+  pasos: Record<string, { hecho: boolean; fecha: string | null }>;
+  pasoActual: string; avance: number; pedidos: PedidoVista[];
+}
+interface PedidoVista { id: string; clienteId: string; producto: string; monto: number; etapa: string; hubspotId: string | null }
+interface Datos {
+  hubspot: "conectado" | "simulado";
+  pasos: Paso[];
+  etapas: Record<string, { nombre: string }>;
+  clientes: ClienteVista[];
+  sinNovedades: { id: string; nombre: string; empresa: string; dias: number; paso: string }[];
+  embudo: { id: string; nombre: string; cantidad: number; monto: number }[];
+  registro: { fecha: string; texto: string }[];
+}
+type Vista = "panel" | "clientes" | "pedidos" | "hubspot";
+
+const $ = <T extends HTMLElement = HTMLElement>(s: string) => document.querySelector<T>(s)!;
+const pesos = (n: number) => "$ " + n.toLocaleString("es-AR");
+const fecha = (f: string | null) => (f ? new Date(f + "T12:00:00").toLocaleDateString("es-AR", { day: "numeric", month: "short" }) : "");
+let datos: Datos, vista: Vista = "panel", limite = 14;
+
+async function api(ruta: string, opciones: RequestInit = {}) {
   const res = await fetch(ruta, { headers: { "Content-Type": "application/json" }, ...opciones });
   const j = await res.json();
   if (!res.ok) throw new Error(j.error);
@@ -16,14 +36,14 @@ function pintar() {
   const hs = $("#estado-hs");
   hs.textContent = datos.hubspot === "conectado" ? "● HubSpot conectado" : "○ HubSpot simulado";
   hs.className = "pildora " + (datos.hubspot === "conectado" ? "ok" : "");
-  document.querySelectorAll(".tabs button").forEach((b) => b.classList.toggle("activa", b.dataset.vista === vista));
+  document.querySelectorAll(".tabs button").forEach((b) => b.classList.toggle("activa", (b as HTMLElement).dataset.vista === vista));
   $("#vista").innerHTML = VISTAS[vista]();
 }
 
-const VISTAS = {
+const VISTAS: Record<Vista, () => string> = {
   panel() {
     const activos = datos.clientes.filter((c) => c.pasoActual !== "completo").length;
-    const ganado = datos.embudo.find((e) => e.id === "entregado");
+    const ganado = datos.embudo.find((e) => e.id === "entregado") ?? { monto: 0 };
     const max = Math.max(...datos.embudo.map((e) => e.cantidad), 1);
     return `
     <div class="titulo"><div><h2>Panel de seguimiento</h2><p>Quién necesita un llamado hoy y cómo viene el embudo.</p></div>
@@ -60,7 +80,7 @@ const VISTAS = {
       </article>`).join("")}</div>`;
   },
   pedidos() {
-    const nombre = (id) => datos.clientes.find((c) => c.id === id)?.empresa;
+    const nombre = (id: string) => datos.clientes.find((c) => c.id === id)?.empresa;
     return `
     <div class="titulo"><div><h2>Pedidos</h2><p>Al cambiar la etapa se actualiza el negocio en HubSpot.</p></div></div>
     <div class="card tabla-scroll"><table><thead><tr><th>Cliente</th><th>Producto</th><th>Monto</th><th>Etapa</th><th>HubSpot</th></tr></thead><tbody>
@@ -83,25 +103,26 @@ const VISTAS = {
     </div>`;
   },
 };
-const nombrePaso = (id) => datos.pasos.find((p) => p.id === id)?.nombre ?? "Completo";
+const nombrePaso = (id: string) => datos.pasos.find((p) => p.id === id)?.nombre ?? "Completo";
 
 $("#entrar").onclick = () => { $("#bienvenida").hidden = true; $("#app").hidden = false; cargar(); };
-document.querySelector(".tabs").onclick = (e) => { const b = e.target.closest("button"); if (b) { vista = b.dataset.vista; pintar(); } };
+$(".tabs").onclick = (e) => { const b = (e.target as Element).closest("button"); if (b) { vista = b.dataset.vista as Vista; pintar(); } };
 $("#vista").addEventListener("click", async (e) => {
-  const t = e.target;
+  const t = e.target as HTMLButtonElement;
   if (t.dataset.paso) { await api(`/api/clientes/${t.dataset.cliente}/pasos/${t.dataset.paso}`, { method: "POST" }); cargar(); }
-  if (t.id === "btn-nuevo") $("#nuevo").showModal();
+  if (t.id === "btn-nuevo") $<HTMLDialogElement>("#nuevo").showModal();
   if (t.id === "btn-sync") { t.disabled = true; await api("/api/sincronizar", { method: "POST" }); cargar(); }
   if (t.id === "btn-reiniciar") { await api("/api/reiniciar", { method: "POST" }); cargar(); }
 });
 $("#vista").addEventListener("change", async (e) => {
-  if (e.target.id === "limite") { limite = Number(e.target.value); cargar(); }
-  if (e.target.dataset.pedido) { await api(`/api/pedidos/${e.target.dataset.pedido}`, { method: "PATCH", body: JSON.stringify({ etapa: e.target.value }) }); cargar(); }
+  const t = e.target as HTMLSelectElement;
+  if (t.id === "limite") { limite = Number(t.value); cargar(); }
+  if (t.dataset.pedido) { await api(`/api/pedidos/${t.dataset.pedido}`, { method: "PATCH", body: JSON.stringify({ etapa: t.value }) }); cargar(); }
 });
 $("#nuevo").addEventListener("close", async () => {
-  const d = $("#nuevo");
-  if (d.returnValue !== "ok") return $("#form-nuevo").reset();
-  const datosForm = Object.fromEntries(new FormData($("#form-nuevo")));
-  $("#form-nuevo").reset();
-  try { await api("/api/clientes", { method: "POST", body: JSON.stringify(datosForm) }); vista = "clientes"; cargar(); } catch (err) { alert(err.message); }
+  const d = $<HTMLDialogElement>("#nuevo");
+  if (d.returnValue !== "ok") return $<HTMLFormElement>("#form-nuevo").reset();
+  const datosForm = Object.fromEntries(new FormData($<HTMLFormElement>("#form-nuevo")));
+  $<HTMLFormElement>("#form-nuevo").reset();
+  try { await api("/api/clientes", { method: "POST", body: JSON.stringify(datosForm) }); vista = "clientes"; cargar(); } catch (err) { alert((err as Error).message); }
 });

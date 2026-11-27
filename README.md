@@ -38,7 +38,8 @@ En el celular:
 
 ## Cómo probarlo
 
-Requiere Node.js 22.18 o superior (ejecuta TypeScript directamente). Para verificar los tipos: `npm run typecheck`.
+Requiere Node.js 22.18 o superior (ejecuta el TypeScript del servidor directamente). `npm start` compila antes
+la interfaz (`web/app.ts` → `public/app.js`). Para verificar los tipos: `npm run typecheck`; pruebas: `npm test`.
 
 ```bash
 npm start
@@ -65,7 +66,7 @@ npm test
 
 | Capa | Qué uso |
 |---|---|
-| Frontend | HTML, CSS y JavaScript sin framework · PWA |
+| Frontend | HTML, CSS y TypeScript (strict) sin framework ni bundler, compilado con `tsc` · PWA |
 | Backend | Node.js + TypeScript (strict) con servidor HTTP propio, sin dependencias en producción |
 | Integración | API REST v3 de HubSpot (contactos, negocios, asociaciones) · webhooks con firma v3 |
 | Datos | JSON en `data/estado.json` (se genera solo con datos ficticios) |
@@ -78,7 +79,8 @@ src/demo.ts          datos ficticios con semilla, pasos y etapas
 src/hubspot.ts       sincronización con HubSpot y verificación de firmas
 src/seguimiento.ts   pasos, días sin novedades y embudo
 src/tipos.ts         tipos del dominio (cliente, pedido, estado)
-public/              la app (PWA)
+web/app.ts           interfaz (se compila a public/app.js)
+public/              HTML, estilos y recursos de la app (PWA)
 pruebas/             pruebas de sincronización y seguimiento
 docs/                flujo, guía para el cliente, marca y Figma
 ```
