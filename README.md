@@ -38,7 +38,7 @@ En el celular:
 
 ## Cómo probarlo
 
-Requiere Node.js 20 o superior. No tiene dependencias.
+Requiere Node.js 22.18 o superior (ejecuta TypeScript directamente). Para verificar los tipos: `npm run typecheck`.
 
 ```bash
 npm start
@@ -66,17 +66,18 @@ npm test
 | Capa | Qué uso |
 |---|---|
 | Frontend | HTML, CSS y JavaScript sin framework · PWA |
-| Backend | Node.js con servidor HTTP propio (sin dependencias) |
+| Backend | Node.js + TypeScript (strict) con servidor HTTP propio, sin dependencias en producción |
 | Integración | API REST v3 de HubSpot (contactos, negocios, asociaciones) · webhooks con firma v3 |
 | Datos | JSON en `data/estado.json` (se genera solo con datos ficticios) |
 | Pruebas | `node --test` con un HubSpot falso inyectado |
 | Diseño | Figma (pantallas y análisis UX/UI) · FigJam (flujo) · manual de marca de 15 láminas |
 
 ```
-server.js            servidor HTTP: API, webhook y archivos estáticos
-src/demo.js          datos ficticios con semilla, pasos y etapas
-src/hubspot.js       sincronización con HubSpot y verificación de firmas
-src/seguimiento.js   pasos, días sin novedades y embudo
+server.ts            servidor HTTP: API, webhook y archivos estáticos
+src/demo.ts          datos ficticios con semilla, pasos y etapas
+src/hubspot.ts       sincronización con HubSpot y verificación de firmas
+src/seguimiento.ts   pasos, días sin novedades y embudo
+src/tipos.ts         tipos del dominio (cliente, pedido, estado)
 public/              la app (PWA)
 pruebas/             pruebas de sincronización y seguimiento
 docs/                flujo, guía para el cliente, marca y Figma
