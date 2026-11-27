@@ -4,9 +4,10 @@ import http from "node:http";
 import fs from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
-import { crearDemo, PASOS, ETAPAS } from "./src/demo.js";
-import { crearCliente, etapaDesdeHubspot, firmaValida } from "./src/hubspot.js";
-import { sinNovedades, embudo, completarPaso, pasoActual, avance } from "./src/seguimiento.js";
+import { crearDemo, PASOS, ETAPAS } from "./src/demo.ts";
+import { crearCliente, etapaDesdeHubspot, firmaValida } from "./src/hubspot.ts";
+import { sinNovedades, embudo, completarPaso, pasoActual, avance } from "./src/seguimiento.ts";
+import type { Cliente, Estado, EtapaId } from "./src/tipos.ts";
 
 const aqui = path.dirname(fileURLToPath(import.meta.url));
 const envFile = path.join(aqui, ".env");
@@ -21,31 +22,31 @@ const PORT = Number(process.env.PORT || 5180);
 const ARCHIVO = path.join(aqui, "data", "estado.json");
 const hubspot = crearCliente({ token: process.env.HUBSPOT_TOKEN });
 
-let estado = fs.existsSync(ARCHIVO) ? JSON.parse(fs.readFileSync(ARCHIVO, "utf8")) : crearDemo();
+let estado: Estado = fs.existsSync(ARCHIVO) ? JSON.parse(fs.readFileSync(ARCHIVO, "utf8")) : crearDemo();
 const guardar = () => { fs.mkdirSync(path.dirname(ARCHIVO), { recursive: true }); fs.writeFileSync(ARCHIVO, JSON.stringify(estado, null, 2)); };
-const anotar = (texto) => { estado.registro.unshift({ fecha: new Date().toISOString(), texto }); estado.registro = estado.registro.slice(0, 50); };
+const anotar = (texto: string) => { estado.registro.unshift({ fecha: new Date().toISOString(), texto }); estado.registro = estado.registro.slice(0, 50); };
 
 async function sincronizarTodo() {
   let c = 0, n = 0;
   for (const cl of estado.clientes) { cl.hubspotId = await hubspot.sincronizarCliente(cl); c++; }
   for (const p of estado.pedidos) {
-    const cl = estado.clientes.find((x) => x.id === p.clienteId);
+    const cl = estado.clientes.find((x) => x.id === p.clienteId)!;
     p.hubspotId = await hubspot.sincronizarPedido(p, cl); n++;
   }
   anotar(`${hubspot.simulado ? "Simulado: " : ""}${c} contactos y ${n} negocios sincronizados con HubSpot`);
   guardar();
 }
 
-const vistaCliente = (c) => ({ ...c, pasoActual: pasoActual(c), avance: avance(c), pedidos: estado.pedidos.filter((p) => p.clienteId === c.id) });
+const vistaCliente = (c: Cliente) => ({ ...c, pasoActual: pasoActual(c), avance: avance(c), pedidos: estado.pedidos.filter((p) => p.clienteId === c.id) });
 
-const MIME = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8",
+const MIME: Record<string, string> = { ".html": "text/html; charset=utf-8", ".js": "text/javascript; charset=utf-8", ".css": "text/css; charset=utf-8",
   ".svg": "image/svg+xml", ".json": "application/json", ".webmanifest": "application/manifest+json" };
 
-const json = (res, codigo, datos) => { res.writeHead(codigo, { "Content-Type": "application/json; charset=utf-8" }); res.end(JSON.stringify(datos)); };
-const leerCuerpo = (req) => new Promise((ok) => { let b = ""; req.on("data", (d) => (b += d)); req.on("end", () => ok(b)); });
+const json = (res: http.ServerResponse, codigo: number, datos: unknown) => { res.writeHead(codigo, { "Content-Type": "application/json; charset=utf-8" }); res.end(JSON.stringify(datos)); };
+const leerCuerpo = (req: http.IncomingMessage) => new Promise<string>((ok) => { let b = ""; req.on("data", (d) => (b += d)); req.on("end", () => ok(b)); });
 
 const servidor = http.createServer(async (req, res) => {
-  const url = new URL(req.url, `http://${req.headers.host}`);
+  const url = new URL(req.url ?? "/", `http://${req.headers.host}`);
   try {
     if (url.pathname === "/api/estado" && req.method === "GET") {
       const dias = Number(url.searchParams.get("dias") || 14);
@@ -62,7 +63,7 @@ const servidor = http.createServer(async (req, res) => {
       const d = JSON.parse(await leerCuerpo(req));
       if (!d.nombre || !d.email || !d.empresa) return json(res, 400, { error: "Faltan nombre, email o empresa" });
       const hoy = new Date().toISOString().slice(0, 10);
-      const cl = { id: `c${Date.now().toString(36)}`, nombre: d.nombre, empresa: d.empresa, email: d.email, telefono: d.telefono || "",
+      const cl: Cliente = { id: `c${Date.now().toString(36)}`, nombre: d.nombre, empresa: d.empresa, email: d.email, telefono: d.telefono || "",
         alta: hoy, ultimaNovedad: hoy, pasos: Object.fromEntries(PASOS.map((p) => [p.id, { hecho: false, fecha: null }])), hubspotId: null };
       cl.hubspotId = await hubspot.sincronizarCliente(cl);
       estado.clientes.push(cl);
@@ -72,20 +73,20 @@ const servidor = http.createServer(async (req, res) => {
     }
     let m = url.pathname.match(/^\/api\/clientes\/([\w-]+)\/pasos\/(\w+)$/);
     if (m && req.method === "POST") {
-      const i = estado.clientes.findIndex((c) => c.id === m[1]);
+      const i = estado.clientes.findIndex((c) => c.id === m![1]);
       if (i < 0) return json(res, 404, { error: "Cliente no encontrado" });
       estado.clientes[i] = completarPaso(estado.clientes[i], m[2]);
-      anotar(`${estado.clientes[i].nombre}: paso «${PASOS.find((p) => p.id === m[2]).nombre}» completo`);
+      anotar(`${estado.clientes[i].nombre}: paso «${PASOS.find((p) => p.id === m![2])?.nombre}» completo`);
       guardar();
       return json(res, 200, vistaCliente(estado.clientes[i]));
     }
     m = url.pathname.match(/^\/api\/pedidos\/([\w-]+)$/);
     if (m && req.method === "PATCH") {
-      const p = estado.pedidos.find((x) => x.id === m[1]);
-      const { etapa } = JSON.parse(await leerCuerpo(req));
+      const p = estado.pedidos.find((x) => x.id === m![1]);
+      const { etapa } = JSON.parse(await leerCuerpo(req)) as { etapa: EtapaId };
       if (!p || !ETAPAS[etapa]) return json(res, 400, { error: "Pedido o etapa inválidos" });
       p.etapa = etapa;
-      const cl = estado.clientes.find((x) => x.id === p.clienteId);
+      const cl = estado.clientes.find((x) => x.id === p.clienteId)!;
       if (!cl.hubspotId) cl.hubspotId = await hubspot.sincronizarCliente(cl);
       p.hubspotId = await hubspot.sincronizarPedido(p, cl);
       anotar(`${cl.empresa} · ${p.producto} pasó a «${ETAPAS[etapa].nombre}» (negocio ${p.hubspotId})`);
@@ -118,7 +119,7 @@ const servidor = http.createServer(async (req, res) => {
     fs.createReadStream(archivo).pipe(res);
   } catch (e) {
     console.error(e);
-    json(res, 500, { error: e.message });
+    json(res, 500, { error: (e as Error).message });
   }
 });
 
