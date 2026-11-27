@@ -1,0 +1,11 @@
+{
+  "name": "offix",
+  "version": "0.1.0",
+  "description": "Demo de Visuali conectada a HubSpot: onboarding de clientes y seguimiento con datos ficticios",
+  "type": "module",
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test pruebas/*.test.js"
+  }
+}

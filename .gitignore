@@ -1,0 +1,7 @@
+node_modules/
+.env
+data/estado.json
+data/kaggle/
+
+# Notas de trabajo personales
+PLAN.md
