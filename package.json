@@ -4,10 +4,13 @@
   "description": "Demo de Visuali conectada a HubSpot: onboarding de clientes y seguimiento con datos ficticios",
   "type": "module",
   "scripts": {
+    "build": "tsc -p tsconfig.web.json",
+    "prestart": "npm run build",
     "start": "node server.ts",
+    "predev": "npm run build",
     "dev": "node --watch server.ts",
     "test": "node --test pruebas/*.test.ts",
-    "typecheck": "tsc"
+    "typecheck": "tsc && tsc -p tsconfig.web.json --noEmit"
   },
   "engines": {
     "node": ">=22.18"

@@ -5,3 +5,6 @@ data/kaggle/
 
 # Notas de trabajo personales
 PLAN.md
+
+# JavaScript generado por tsc desde web/ (npm run build)
+public/app.js
